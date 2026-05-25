@@ -44,12 +44,15 @@ from rlinf.models.embodiment.modules.value_head import ValueHead
 class SimulationContent:
     """Lightweight container for a single timestep's worth of GR00T processor inputs."""
 
-    def __init__(self, embodiment, states, actions, images, text):
+    def __init__(self, embodiment, states, actions, images, text, masks=None):
         self.embodiment = embodiment
         self.states = states
         self.actions = actions
         self.images = images
         self.text = text
+        # Isaac-GR00T N1.6 processors expect a masks attribute even when no
+        # mask modality is provided by the simulator.
+        self.masks = masks
 
 
 class FlowMatchingActionHeadForRLActionPrediction(nn.Module):
@@ -974,7 +977,7 @@ class GR00T_N1_6_ForRLActionPrediction(Gr00tN1d6, BasePolicy):
             k_lower = k.lower()
             if "task" in k_lower or "lang" in k_lower or "instruction" in k_lower:
                 text_key = k
-            elif "image" in k_lower or "rgb" in k_lower or "cam" in k_lower:
+            elif "image" in k_lower or "video" in k_lower or "rgb" in k_lower or "cam" in k_lower:
                 image_keys.append(k)
             else:
                 state_keys.append(k)
@@ -1017,7 +1020,14 @@ class GR00T_N1_6_ForRLActionPrediction(Gr00tN1d6, BasePolicy):
             v = obs[k][i]
             if isinstance(v, torch.Tensor):
                 v = v.cpu().float().numpy()
-            states_dict[k] = np.array(v)
+            # GR00T's StateActionProcessor expects modality group names
+            # without the leading "state." namespace (for example
+            # "single_arm", not "state.single_arm").  The simulation
+            # converters keep LeRobot-style fully-qualified keys so that the
+            # observation dictionary remains self-describing; strip the prefix
+            # only at the processor boundary.
+            state_name = k.split(".", 1)[1] if k.startswith("state.") else k
+            states_dict[state_name] = np.array(v)
 
         ref_T = next(iter(states_dict.values())).shape[0] if states_dict else 1
         robocasa_requirements = {
@@ -1128,10 +1138,12 @@ class GR00T_N1_6_ForRLActionPrediction(Gr00tN1d6, BasePolicy):
         tag_val = self._tag_value(self.embodiment_tag)
         batch_size = len(next(iter(obs.values())))
         processed_outputs = []
+        raw_states_by_sample = []
 
         for i in range(batch_size):
             text = self._extract_obs_text(obs, text_key, i)
             states_dict = self._process_obs_states(obs, state_keys, tag_val, i)
+            raw_states_by_sample.append(states_dict)
             images_dict = self._process_obs_images(obs, image_keys, tag_val, i)
 
             content = SimulationContent(
@@ -1144,6 +1156,15 @@ class GR00T_N1_6_ForRLActionPrediction(Gr00tN1d6, BasePolicy):
             messages = [{"role": "user", "content": content}]
             processed_outputs.append(self._modality_transform(messages=messages))
 
+        if raw_states_by_sample:
+            state_keys_for_decode = raw_states_by_sample[0].keys()
+            self._last_raw_states_for_decode = {
+                key: np.stack([sample[key] for sample in raw_states_by_sample], axis=0)
+                for key in state_keys_for_decode
+            }
+        else:
+            self._last_raw_states_for_decode = None
+
         return self._collate_and_rename(processed_outputs)
 
     def unapply_transforms(self, action: dict[str, Any]) -> dict[str, Any]:
@@ -1153,7 +1174,9 @@ class GR00T_N1_6_ForRLActionPrediction(Gr00tN1d6, BasePolicy):
             raw_action_tensor = raw_action_tensor.detach().cpu().numpy()
 
         decoded = self._modality_transform.decode_action(
-            action=raw_action_tensor, embodiment_tag=self.embodiment_tag, state=None
+            action=raw_action_tensor,
+            embodiment_tag=self.embodiment_tag,
+            state=getattr(self, "_last_raw_states_for_decode", None),
         )
         return decoded
 

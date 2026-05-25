@@ -125,11 +125,19 @@ def get_model(cfg: DictConfig, torch_dtype=torch.bfloat16):
         emb_tag = EmbodimentTag.GR1
     elif cfg.embodiment_tag == "behavior_r1_pro":
         emb_tag = EmbodimentTag.BEHAVIOR_R1_PRO
+    elif cfg.embodiment_tag == "new_embodiment":
+        emb_tag = EmbodimentTag.NEW_EMBODIMENT
     else:
-        raise ValueError(
-            f"Invalid or unsupported embodiment tag: {cfg.embodiment_tag}. "
-            f"Supported tags are: ['behavior_r1_pro', 'gr1', 'robocasa_panda_omron', 'libero_panda']."
-        )
+        # Allow locally registered / fine-tuned embodiment tags when the
+        # extension has patched rlinf.models.embodiment.gr00t_n1d6.embodiment_tags.
+        tag_upper = str(cfg.embodiment_tag).upper().replace("-", "_")
+        if hasattr(EmbodimentTag, tag_upper):
+            emb_tag = getattr(EmbodimentTag, tag_upper)
+        else:
+            raise ValueError(
+                f"Invalid or unsupported embodiment tag: {cfg.embodiment_tag}. "
+                f"Supported tags include ['behavior_r1_pro', 'gr1', 'robocasa_panda_omron', 'libero_panda', 'new_embodiment']."
+            )
 
     model_path = Path(cfg.model_path)
     if not model_path.exists():
