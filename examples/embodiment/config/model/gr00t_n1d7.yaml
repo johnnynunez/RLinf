@@ -1,0 +1,46 @@
+model_type: "gr00t_n1d7"
+
+# Model precision and loading settings
+precision: "bf16"
+trust_remote_code: True
+is_lora: false
+
+# Action and policy settings
+action_dim: 7
+num_action_chunks: 10
+denoising_steps: 1
+
+# obs_converter_type selects an entry in
+# ``rlinf.models.embodiment.gr00t_n1d7.simulation_io`` (OBS_CONVERSION /
+# ACTION_CONVERSION). Downstream integrations (e.g. the IsaacLab SO-101
+# workshop) register their own converter onto that module and point this here.
+obs_converter_type: "libero"
+embodiment_tag: libero_panda
+
+# Path to a saved Gr00tN1d7Processor directory (processor_config.json +
+# statistics.json + embodiment_id.json). Unlike N1.6's Eagle processor, the
+# N1.7 obs path goes through Gr00tN1d7Processor.process_observation, so this
+# must point at the processor saved alongside the N1.7 checkpoint. Leave null
+# to fall back to AutoProcessor.from_pretrained(model_path).
+processor_path: null
+
+add_value_head: True
+
+rl_head_config:
+  joint_logprob: False
+  noise_method: "flow_sde"
+  ignore_last: False
+  safe_get_logprob: False
+  noise_anneal: False
+  noise_params: [0.7, 0.3, 400]
+  noise_level: 0.5
+  action_noise_scale: 0.1
+  add_value_head: ${actor.model.add_value_head}
+  chunk_critic_input: False
+  detach_critic_input: True
+  disable_dropout: True
+  use_vlm_value: False
+  value_vlm_mode: "mean_token"
+  padding_value: 570
+
+num_steps: 4

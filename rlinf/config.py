@@ -105,6 +105,8 @@ SupportedModel.QWEN3_VL_SFT = SupportedModel.register("qwen3_vl", force=True)
 SupportedModel.QWEN3_VL_MOE_SFT = SupportedModel.register("qwen3_vl_moe", force=True)
 SupportedModel.GR00T_N1D6 = SupportedModel.register("gr00t_n1d6", force=True)
 SupportedModel.GR00T_N1D6_SFT = SupportedModel.register("gr00t_n1d6_sft", force=True)
+# GR00T N1.7 (Gr00tN1d7 / Cosmos-Reason2-2B) -- independent of the N1.6 path.
+SupportedModel.GR00T_N1D7 = SupportedModel.register("gr00t_n1d7", force=True)
 
 EMBODIED_MODEL = set(
     {
@@ -124,6 +126,7 @@ EMBODIED_MODEL = set(
         SupportedModel.RESNET_REWARD,
         SupportedModel.GR00T_N1D6,
         SupportedModel.GR00T_N1D6_SFT,
+        SupportedModel.GR00T_N1D7,
         SupportedModel.CFG_MODEL,
         SupportedModel.VALUE_MODEL,
     }
