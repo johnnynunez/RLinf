@@ -217,12 +217,6 @@ def _register_builtin_models():
         force=True,
     )
     register_model(
-        SupportedModel.GR00T_N1D6_SFT.value,
-        _build_gr00t_n1d6,
-        category="embodied",
-        force=True,
-    )
-    register_model(
         SupportedModel.GR00T_N1D7.value,
         _build_gr00t_n1d7,
         category="embodied",
