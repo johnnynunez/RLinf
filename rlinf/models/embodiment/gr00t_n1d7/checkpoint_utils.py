@@ -31,6 +31,8 @@ LIBERO_N17_ACTION_EXECUTION_HORIZON = 8
 _EMBODIMENT_TAG_ALIASES: dict[str, str] = {
     "libero_panda": LIBERO_N17_PROCESSOR_TAG,
     "libero_franka": LIBERO_N17_PROCESSOR_TAG,
+    "so101": EmbodimentTag.NEW_EMBODIMENT.value,
+    "so100": EmbodimentTag.NEW_EMBODIMENT.value,
 }
 
 

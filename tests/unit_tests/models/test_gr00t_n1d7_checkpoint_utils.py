@@ -56,6 +56,11 @@ def test_libero_panda_alias_maps_to_libero_sim():
     assert resolve_embodiment_tag_enum("libero_panda") == EmbodimentTag.LIBERO_SIM
 
 
+def test_so101_alias_maps_to_new_embodiment():
+    assert normalize_embodiment_tag_name("so101") == "new_embodiment"
+    assert resolve_embodiment_tag_enum("so101") == EmbodimentTag.NEW_EMBODIMENT
+
+
 def test_resolve_embodiment_auto_infer(tmp_path):
     _write_libero_n17_processor(tmp_path)
     tag = resolve_embodiment_tag_for_checkpoint(
