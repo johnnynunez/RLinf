@@ -5,23 +5,23 @@ precision: "bf16"
 trust_remote_code: True
 is_lora: false
 
-# Action and policy settings
+# Action and policy settings (LIBERO N1.7 defaults; auto_infer_* overrides from checkpoint)
 action_dim: 7
-num_action_chunks: 10
-denoising_steps: 1
+num_action_chunks: 8
+denoising_steps: 4
 
 # obs_converter_type selects an entry in
 # ``rlinf.models.embodiment.gr00t_n1d7.simulation_io`` (OBS_CONVERSION /
-# ACTION_CONVERSION). Downstream integrations (e.g. the IsaacLab SO-101
-# workshop) register their own converter onto that module and point this here.
+# ACTION_CONVERSION).
 obs_converter_type: "libero"
-embodiment_tag: libero_panda
 
-# Path to a saved Gr00tN1d7Processor directory (processor_config.json +
-# statistics.json + embodiment_id.json). Unlike N1.6's Eagle processor, the
-# N1.7 obs path goes through Gr00tN1d7Processor.process_observation, so this
-# must point at the processor saved alongside the N1.7 checkpoint. Leave null
-# to fall back to AutoProcessor.from_pretrained(model_path).
+# Processor modality key for NVIDIA LIBERO N1.7 checkpoints (see processor_config.json).
+embodiment_tag: libero_sim
+auto_infer_embodiment_tag: true
+auto_infer_action_chunks: true
+
+# Path to Gr00tN1d7Processor assets (processor_config.json, statistics.json,
+# embodiment_id.json). Null uses model_path.
 processor_path: null
 
 add_value_head: True
@@ -42,5 +42,3 @@ rl_head_config:
   use_vlm_value: False
   value_vlm_mode: "mean_token"
   padding_value: 570
-
-num_steps: 4

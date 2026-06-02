@@ -55,7 +55,12 @@ class EmbodimentTag(Enum):
 
     LIBERO_PANDA = "libero_panda"
     """
-    The Libero panda robot.
+    The Libero panda robot (legacy N1.5/N1.6 tag).
+    """
+
+    LIBERO_SIM = "libero_sim"
+    """
+    LIBERO simulation layout for GR00T N1.7 checkpoints (LeRobot / Isaac-GR00T).
     """
 
     OXE_GOOGLE = "oxe_google"
@@ -85,9 +90,11 @@ class EmbodimentTag(Enum):
     """
 
 
-# Embodiment tag string: to projector index in the Action Expert Module
-# These IDs must match official gr00t (see gr00t_n1d6 processing / embodiment_id.json).
+# Embodiment tag string: to projector index in the Action Expert Module.
+# Defaults match Isaac-GR00T / LeRobot N1.7; checkpoints may override via
+# ``embodiment_id.json`` loaded into the processor.
 EMBODIMENT_TAG_MAPPING = {
+    EmbodimentTag.LIBERO_SIM.value: 2,
     EmbodimentTag.LIBERO_PANDA.value: 2,
     EmbodimentTag.ROBOCASA_PANDA_OMRON.value: 13,
     EmbodimentTag.LIBERO_FRANKA.value: 31,

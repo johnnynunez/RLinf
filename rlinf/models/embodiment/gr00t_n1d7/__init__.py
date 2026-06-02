@@ -117,47 +117,69 @@ def get_model(cfg: DictConfig, torch_dtype=torch.bfloat16):
     )
     Patcher.apply()
 
-    from gr00t.data.embodiment_tags import EmbodimentTag
-
+    from rlinf.models.embodiment.gr00t_n1d7.checkpoint_utils import (
+        infer_groot_n1_7_action_execution_horizon,
+        resolve_embodiment_tag_for_checkpoint,
+    )
     from rlinf.models.embodiment.gr00t_n1d7.gr00t_action_model import (
         GR00T_N1_7_ForRLActionPrediction,
     )
     from rlinf.models.embodiment.gr00t_n1d7.utils import replace_dropout_with_identity
 
-    # Map the workshop / sim embodiment tag onto an official GR00T projector slot.
-    if cfg.embodiment_tag == "libero_panda":
-        emb_tag = EmbodimentTag.LIBERO_PANDA
-    elif cfg.embodiment_tag in [
-        "libero_franka",
-        "isaaclab_franka",
-        "maniskill_widowx",
-        "robocasa_panda_omron",
-    ]:
-        emb_tag = EmbodimentTag.ROBOCASA_PANDA_OMRON
-    elif cfg.embodiment_tag == "gr1":
-        emb_tag = EmbodimentTag.GR1
-    elif cfg.embodiment_tag == "behavior_r1_pro":
-        emb_tag = EmbodimentTag.BEHAVIOR_R1_PRO
-    elif cfg.embodiment_tag in ("new_embodiment", "so101", "so100"):
-        emb_tag = EmbodimentTag.NEW_EMBODIMENT
-    else:
-        raise ValueError(
-            f"Invalid or unsupported embodiment tag: {cfg.embodiment_tag}. "
-            "Supported tags are: ['behavior_r1_pro', 'gr1', 'robocasa_panda_omron', "
-            "'libero_panda', 'libero_franka', 'isaaclab_franka', 'maniskill_widowx', "
-            "'new_embodiment', 'so101', 'so100']."
-        )
-
     model_path = Path(cfg.model_path)
     if not model_path.exists():
         raise FileNotFoundError(f"Model path does not exist: {model_path}")
+
+    processor_path = OmegaConf.select(cfg, "processor_path", default=None)
+    auto_infer_tag = bool(
+        OmegaConf.select(cfg, "auto_infer_embodiment_tag", default=True)
+    )
+    cfg_embodiment_tag = OmegaConf.select(cfg, "embodiment_tag", default=None)
+    emb_tag = resolve_embodiment_tag_for_checkpoint(
+        cfg_embodiment_tag,
+        model_path,
+        processor_path,
+        auto_infer=auto_infer_tag,
+    )
+    logging.info(
+        "gr00t_n1d7: using embodiment tag '%s' (processor key).",
+        emb_tag.value,
+    )
 
     config = Gr00tN1d7Config.from_pretrained(str(model_path))
     _action_dim = cfg.get("action_dim")
     if _action_dim is not None:
         config.action_dim = _action_dim
 
-    processor_path = OmegaConf.select(cfg, "processor_path", default=None)
+    denoising_steps = cfg.get("denoising_steps")
+    if denoising_steps is None:
+        denoising_steps = getattr(config, "num_inference_timesteps", 4)
+
+    num_action_chunks = cfg.get("num_action_chunks")
+    auto_infer_chunks = bool(
+        OmegaConf.select(cfg, "auto_infer_action_chunks", default=True)
+    )
+    inferred_chunks = None
+    if auto_infer_chunks:
+        inferred_chunks = infer_groot_n1_7_action_execution_horizon(
+            model_path, emb_tag.value, processor_path
+        )
+    if num_action_chunks is None:
+        num_action_chunks = inferred_chunks if inferred_chunks is not None else 8
+        logging.info(
+            "gr00t_n1d7: num_action_chunks=%s (inferred from checkpoint).",
+            num_action_chunks,
+        )
+    elif (
+        inferred_chunks is not None and int(num_action_chunks) != int(inferred_chunks)
+    ):
+        logging.warning(
+            "gr00t_n1d7: num_action_chunks=%s differs from checkpoint execution "
+            "horizon %s (LeRobot/OSS LIBERO uses %s).",
+            num_action_chunks,
+            inferred_chunks,
+            inferred_chunks,
+        )
 
     model = GR00T_N1_7_ForRLActionPrediction.from_pretrained(
         config=config,
@@ -165,8 +187,8 @@ def get_model(cfg: DictConfig, torch_dtype=torch.bfloat16):
         pretrained_model_name_or_path=str(model_path),
         torch_dtype=torch_dtype,
         embodiment_tag=emb_tag,
-        denoising_steps=cfg.denoising_steps,
-        output_action_chunks=cfg.num_action_chunks,
+        denoising_steps=denoising_steps,
+        output_action_chunks=num_action_chunks,
         obs_converter_type=cfg.obs_converter_type,
         rl_head_config=cfg.rl_head_config,
         processor_path=processor_path,
