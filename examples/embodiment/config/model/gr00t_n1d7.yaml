@@ -15,8 +15,11 @@ denoising_steps: 4
 # ACTION_CONVERSION).
 obs_converter_type: "libero"
 
-# Processor modality key for NVIDIA LIBERO N1.7 checkpoints (see processor_config.json).
+# LIBERO N1.7: processor key ``libero_sim`` (LeRobot #3709). SO-101 IsaacLab: use
+# ``embodiment_tag: so101``, ``obs_converter_type: isaaclab_stack_cube``, and set
+# ``auto_infer_embodiment_tag: false`` in the task YAML.
 embodiment_tag: libero_sim
+use_official_libero_sim: true
 auto_infer_embodiment_tag: true
 auto_infer_action_chunks: true
 
@@ -42,3 +45,5 @@ rl_head_config:
   use_vlm_value: False
   value_vlm_mode: "mean_token"
   padding_value: 570
+
+num_steps: 4

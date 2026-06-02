@@ -120,6 +120,7 @@ def get_model(cfg: DictConfig, torch_dtype=torch.bfloat16):
     from rlinf.models.embodiment.gr00t_n1d7.checkpoint_utils import (
         infer_groot_n1_7_action_execution_horizon,
         resolve_embodiment_tag_for_checkpoint,
+        resolve_embodiment_tag_manual,
     )
     from rlinf.models.embodiment.gr00t_n1d7.gr00t_action_model import (
         GR00T_N1_7_ForRLActionPrediction,
@@ -135,12 +136,25 @@ def get_model(cfg: DictConfig, torch_dtype=torch.bfloat16):
         OmegaConf.select(cfg, "auto_infer_embodiment_tag", default=True)
     )
     cfg_embodiment_tag = OmegaConf.select(cfg, "embodiment_tag", default=None)
-    emb_tag = resolve_embodiment_tag_for_checkpoint(
-        cfg_embodiment_tag,
-        model_path,
-        processor_path,
-        auto_infer=auto_infer_tag,
+    use_official_libero_sim = bool(
+        OmegaConf.select(cfg, "use_official_libero_sim", default=True)
     )
+    if auto_infer_tag:
+        emb_tag = resolve_embodiment_tag_for_checkpoint(
+            cfg_embodiment_tag,
+            model_path,
+            processor_path,
+            auto_infer=True,
+        )
+    else:
+        if cfg_embodiment_tag is None:
+            raise ValueError(
+                "embodiment_tag is required when auto_infer_embodiment_tag is false."
+            )
+        emb_tag = resolve_embodiment_tag_manual(
+            cfg_embodiment_tag,
+            use_official_libero_sim=use_official_libero_sim,
+        )
     logging.info(
         "gr00t_n1d7: using embodiment tag '%s' (processor key).",
         emb_tag.value,

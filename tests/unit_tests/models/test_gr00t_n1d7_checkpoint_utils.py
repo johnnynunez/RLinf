@@ -23,6 +23,7 @@ from rlinf.models.embodiment.gr00t_n1d7.checkpoint_utils import (
     normalize_embodiment_tag_name,
     resolve_embodiment_tag_enum,
     resolve_embodiment_tag_for_checkpoint,
+    resolve_embodiment_tag_manual,
 )
 from rlinf.models.embodiment.gr00t_n1d7.embodiment_tags import EmbodimentTag
 
@@ -59,6 +60,14 @@ def test_libero_panda_alias_maps_to_libero_sim():
 def test_so101_alias_maps_to_new_embodiment():
     assert normalize_embodiment_tag_name("so101") == "new_embodiment"
     assert resolve_embodiment_tag_enum("so101") == EmbodimentTag.NEW_EMBODIMENT
+    assert resolve_embodiment_tag_manual("so101") == EmbodimentTag.NEW_EMBODIMENT
+
+
+def test_manual_libero_panda_official_uses_libero_sim():
+    assert (
+        resolve_embodiment_tag_manual("libero_panda", use_official_libero_sim=True)
+        == EmbodimentTag.LIBERO_SIM
+    )
 
 
 def test_resolve_embodiment_auto_infer(tmp_path):

@@ -185,3 +185,34 @@ def resolve_embodiment_tag_for_checkpoint(
                 f"processor tag '{inferred}'."
             )
     return resolve_embodiment_tag_enum(cfg_tag)
+
+
+def resolve_embodiment_tag_manual(
+    embodiment_tag: str,
+    *,
+    use_official_libero_sim: bool = True,
+) -> EmbodimentTag:
+    """Manual embodiment mapping (mirrors ``gr00t_n1d6`` ``get_model`` when auto-infer is off).
+
+    For LIBERO N1.7 checkpoints, official eval uses processor key ``libero_sim``
+    (see `LeRobot PR #3709 <https://github.com/huggingface/lerobot/pull/3709>`_),
+    analogous to ``use_official_libero_panda`` on N1.6.
+    """
+    if embodiment_tag == "libero_panda":
+        if use_official_libero_sim:
+            return resolve_embodiment_tag_enum(LIBERO_N17_PROCESSOR_TAG)
+        return resolve_embodiment_tag_enum(EmbodimentTag.ROBOCASA_PANDA_OMRON.value)
+    if embodiment_tag in [
+        "libero_franka",
+        "isaaclab_franka",
+        "maniskill_widowx",
+        "robocasa_panda_omron",
+    ]:
+        return resolve_embodiment_tag_enum(EmbodimentTag.ROBOCASA_PANDA_OMRON.value)
+    if embodiment_tag == "gr1":
+        return resolve_embodiment_tag_enum(EmbodimentTag.GR1.value)
+    if embodiment_tag == "behavior_r1_pro":
+        return resolve_embodiment_tag_enum(EmbodimentTag.BEHAVIOR_R1_PRO.value)
+    if embodiment_tag in ("new_embodiment", "so101", "so100"):
+        return resolve_embodiment_tag_enum(embodiment_tag)
+    return resolve_embodiment_tag_enum(embodiment_tag)
